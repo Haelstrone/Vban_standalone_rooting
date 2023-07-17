@@ -1,10 +1,13 @@
-Input Device: Microphone (Realtek(R) Audio)
-Output Device: Haut-parleurs (Realtek(R) Audio)
+Input Device: Pilote de capture audio principal
+Output Device: Microphone (Realtek(R) Audio)
 Stream 1 - Received IP: 192.168.0.1
-Stream 1 - Received Name: Bite
+Stream 1 - Received Name: test
 Stream 2 - Received IP: 192.168.0.2
 Stream 2 - Received Name:  ouf
 Stream 1 - Send IP: 192.168.0.1
 Stream 1 - Send Name: sfsf
 Stream 2 - Send IP: 192.168.0.1
 Stream 2 - Send Name: fefa
+VBAN - Toggle On Start: 0
+input index: 9
+output index: 1
