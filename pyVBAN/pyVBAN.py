@@ -57,7 +57,7 @@ class VBAN_Recv(object):
 		if self.stream == None:
 			print("Quit has been called")
 			return
-		data, addr = self.sock.recvfrom(2048) # buffer size is normally 1436 bytes Max size for vban
+		data, addr = self.sock.recvfrom(1436) # buffer size is normally 1436 bytes Max size for vban
 		self.rawData = data
 		self._parseHeader(data)
 		if self.verbose:
@@ -107,6 +107,8 @@ class VBAN_Send(object):
 		self.verbose = verbose
 		self.rawPcm = None
 		self.rawData = None
+		print("pyVBAN-Send Started")
+		print("Hint: Remeber that pyVBAN only support's PCM 16bits")
 
 	def _constructFrame(self,pcmData):
 		header  = b"VBAN" 

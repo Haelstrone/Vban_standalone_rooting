@@ -68,7 +68,7 @@ def start_vban_recv():#Shared_entry_stream1_ip_received, Shared_entry_stream2_ip
     stream1_ip_received = Shared_entry_stream1_ip_received
     stream1_name_received = Shared_entry_stream1_name_received
     output_device = Shared_selected_output_index
-    vban_recv = pyVBAN.VBAN_Recv(stream1_ip_received, stream1_name_received, 6980,int(output_device) , verbose=True)
+    vban_recv = pyVBAN.VBAN_Recv(stream1_ip_received, stream1_name_received, 6980,int(output_device) , verbose=False)
     while not stop_vban_event.is_set():
         vban_recv.runonce()
     vban_recv.quit()  
