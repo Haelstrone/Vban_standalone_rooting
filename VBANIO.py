@@ -1,5 +1,6 @@
 
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
 import pyaudio
 import pyVBAN.pyVBAN as pyVBAN
@@ -13,14 +14,14 @@ import os
 import time
 import sys
 import subprocess
+
 ################################################# VBAN FLOW ###############################################
 
 
 
 stop_vban_event = mp.Event()
 
-recv_process = None
-send_process = None
+
 
 
 
@@ -67,27 +68,31 @@ def start_vban_recv():#Shared_entry_stream1_ip_received, Shared_entry_stream2_ip
     stream1_ip_received = Shared_entry_stream1_ip_received
     stream1_name_received = Shared_entry_stream1_name_received
     output_device = Shared_selected_output_index
-    vban_recv = pyVBAN.VBAN_Recv(stream1_ip_received, stream1_name_received, 48000, int(output_device), verbose=True)
-    return vban_recv
+    vban_recv = pyVBAN.VBAN_Recv(stream1_ip_received, stream1_name_received, 6980,int(output_device) , verbose=True)
+    while not stop_vban_event.is_set():
+        vban_recv.runonce()
+    vban_recv.quit()  
 
 def start_vban_send():#Shared_entry_stream1_ip_send, Shared_entry_stream1_name_send, Shared_entry_stream2_ip_send, Shared_entry_stream2_name_send, Shared_selected_input_index):
     stream1_ip_send = Shared_entry_stream1_ip_send
     stream1_name_send = Shared_entry_stream1_name_send
     input_device = Shared_selected_input_index
-    vban_send = pyVBAN.VBAN_Send(stream1_ip_send, 6980, stream1_name_send, 48000, int(input_device), verbose=True)
-    return vban_send
-
-
-def send_vban_process(vban_send, variables):
+    vban_send = pyVBAN.VBAN_Send(stream1_ip_send, 6980, stream1_name_send, 48000, int(input_device), verbose=False)
     while not stop_vban_event.is_set():
         vban_send.runonce()
-    vban_send.quit()
+    vban_send.quit() 
 
-def recv_vban_process(vban_recv, variables):
+
+# def send_vban_process(vban_send, variables):
+#     while not stop_vban_event.is_set():
+#         vban_send.runonce()
+#     vban_send.quit()
+
+# def recv_vban_process(vban_recv, variables):
     
-    while not stop_vban_event.is_set():
-        vban_recv.runonce()
-    vban_recv.quit()
+#     while not stop_vban_event.is_set():
+#         vban_recv.runonce()
+#     vban_recv.quit()
 
 def clear_dictionary():
     saved_variables.clear()
@@ -107,6 +112,9 @@ def print_debug():
 
 if __name__ == '__main__':
 
+    recv_process = None
+    send_process = None
+
     def Vban_on():
         global recv_process, send_process
         if recv_process is None or not recv_process.is_alive():
@@ -116,6 +124,7 @@ if __name__ == '__main__':
             send_process = mp.Process(target=start_vban_send, )#args=(Shared_entry_stream1_ip_send, Shared_entry_stream1_name_send, Shared_entry_stream2_ip_send, Shared_entry_stream2_name_send, Shared_selected_input_index))
             send_process.start()
 
+    
 
     def Vban_off():
         global recv_process, send_process
@@ -130,7 +139,6 @@ if __name__ == '__main__':
         stop_vban_event.set()
 
     def restart_application():
-        # Terminer les processus VBAN en cours d'exécution
         Vban_off()
         root.destroy()
 
@@ -190,9 +198,10 @@ if __name__ == '__main__':
 
 
 ##################################### -TRAY ICON & FONCTION- ##########################
+    
+    
 
-
-    def Quit_app(icon, item):
+    def Quit_app(icon):
         icon.stop()
         Vban_off()
         recv_process.join()
@@ -205,20 +214,21 @@ if __name__ == '__main__':
         send_process.join()
         root.destroy()
 
-    def show_window(icon, item):
-        if not root.state():
+    def show_window(icon):
             icon.stop()
             root.after(0,root.deiconify)
+            #print("debug")
 
+        
     def withdraw_window():  
         root.withdraw()
-        image = Image.open("gigarig.png")
+        image = Image.open("io_icon.png")
         menu = (
         item('Quitter', Quit_app),
         item('Show' , show_window, default=True)
     )
-        icon = pys.Icon("name", image, "title", menu)
-        icon.run()
+        icon = pys.Icon("I/O VBAN ", image, "I/O VBAN", menu)
+        icon.run_detached()
 
 
 ########################################### VBAN CONTROL ###############################
@@ -245,6 +255,7 @@ if __name__ == '__main__':
 
     #Creating window
     root = tk.Tk()
+    #root.configure(bg="#373861")
     root.title("VBAN I/O Setup")
     root.protocol('WM_DELETE_WINDOW', withdraw_window)
 
@@ -252,7 +263,7 @@ if __name__ == '__main__':
     # Received Space
     frame_received = tk.LabelFrame(root, text="Received", padx=10, pady=10)
     frame_received.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-
+    #frame_received.configure(bg="#373861")
     #Label ip and Steam Name
     label_Ip_received = tk.Label(frame_received, text="Ip Adress:")
     label_Ip_received.grid(row=0, column=1, padx=5, pady=5, sticky="sw")
@@ -261,8 +272,8 @@ if __name__ == '__main__':
     label_Name_received.grid(row=0, column=2, padx=5, pady=5, sticky="sw")
 
     # Stream 1 - Received
-    label_stream1_received = tk.Label(frame_received, text="Stream 1:")
-    label_stream1_received.grid(row=1, column=0, padx=5, pady=5, sticky="e")
+    # label_stream1_received = tk.Label(frame_received, text="Stream 1:")
+    # label_stream1_received.grid(row=1, column=0, padx=5, pady=5, sticky="e")
 
     entry_stream1_ip_received = tk.Entry(frame_received, width=15)
     entry_stream1_ip_received.grid(row=1, column=1, padx=5, pady=5)
@@ -283,44 +294,40 @@ if __name__ == '__main__':
     # Send Space
     frame_send = tk.LabelFrame(root, text="Send", padx=10, pady=10)
     frame_send.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+    #frame_send.configure(bg="#373861")
 
+############################################################# label and tooltip #####################################################
 
-############################################################# Bulle d'information et Label #####################################################
-
-    Tooltip_dict = { "Ip adresse send": "" }
-    global tooltip
-
-    tooltip = tk.Toplevel(root)
-    tooltip.destroy()
     
-    def show_tooltip(event):
-        tooltip = tk.Toplevel(root)
-        tooltip.geometry(f"+{event.x_root+10}+{event.y_root+10}")
-        tooltip.wm_overrideredirect(True)  # Supprime la barre de titre et la bordure de la fenêtre
-        tooltip_label = tk.Label(tooltip, text="Information supplémentaire")
-        tooltip_label.pack()
-        
-    def hide_tooltip(event):
-        tooltip.destroy()
-
-
+    # is working but there is issue with the position of the label 
+    
+    
+    def create_tooltip(widget, text):
+        tooltip = ttk.Label(root, text=text, background="white", padding=(5, 2))
+        tooltip.place_configure(x=0, y=0, relwidth=1, relheight=1)
+        tooltip.configure(relief="solid")
+        tooltip.place_forget()
+        widget.bind("<Enter>", lambda event: tooltip.place_configure(x=root.winfo_pointerx(), y=root.winfo_pointery()))
+        widget.bind("<Leave>", lambda event: tooltip.place_forget())
+       
     #Label ip and Steam Name
     label_Ip_send = tk.Label(frame_send, text="Ip Adress:")
     label_Ip_send.grid(row=0, column=1, padx=5, pady=5, sticky="sw")
-    label_Ip_send.bind("<Enter>", show_tooltip)
-    label_Ip_send.bind("<Leave>", hide_tooltip)
+    create_tooltip(label_Ip_send, "This is a tooltip2.")
 
     label_Name_send = tk.Label(frame_send, text="Stream Name:")
     label_Name_send.grid(row=0, column=2, padx=5, pady=5, sticky="sw")
-    label_Name_send.bind("<Enter>", show_tooltip)
-    label_Name_send.bind("<Leave>", hide_tooltip)
+    create_tooltip(label_Name_send, "This is a tooltip2.")
+
+
+
 
 ####################################################################################################################################################
 
 
     # Stream 1 - Send
-    label_stream1_send = tk.Label(frame_send, text="Stream 1:")
-    label_stream1_send.grid(row=1, column=0, padx=5, pady=5, sticky="e")
+    # label_stream1_send = tk.Label(frame_send, text="Stream 1:")
+    # label_stream1_send.grid(row=1, column=0, padx=5, pady=5, sticky="e")
 
     entry_stream1_ip_send = tk.Entry(frame_send, width=15)
     entry_stream1_ip_send.grid(row=1, column=1, padx=5, pady=5)
@@ -373,18 +380,26 @@ if __name__ == '__main__':
     # device output Space
     frame_output_device = tk.LabelFrame(frame_received, text="Output Device", padx=10, pady=10)
     frame_output_device.grid(row=3, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
-
+    #frame_output_device.configure(bg="#373861")
     # device input Space
     frame_input_device = tk.LabelFrame(frame_send, text="Input Device", padx=10, pady=10)
     frame_input_device.grid(row=3, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
-
+    #frame_input_device.configure(bg="#373861")
     # Input device dropdown menu
+    # selected_input_device = tk.StringVar(root)
+    # selected_input_device.set(input_devices[0])
+    # selected_input_device.trace('w', on_input_device_selected)
+
+    # dropdown_input = tk.OptionMenu(frame_send, selected_input_device, *input_devices)
+    # dropdown_input.grid(row=3, column=2, padx=0, pady=10, sticky="w")
+
     selected_input_device = tk.StringVar(root)
     selected_input_device.set(input_devices[0])
     selected_input_device.trace('w', on_input_device_selected)
 
     dropdown_input = tk.OptionMenu(frame_send, selected_input_device, *input_devices)
     dropdown_input.grid(row=3, column=2, padx=0, pady=10, sticky="w")
+
 
     # Output device dropdown menu
     selected_output_device = tk.StringVar(root)
@@ -399,6 +414,8 @@ if __name__ == '__main__':
     # Apply Cancel and quit Buttons
     frame_buttons = tk.Frame(root, padx=10, pady=10)
     frame_buttons.grid(row=3, column=0, sticky="e")
+    #frame_buttons.configure(bg="#373861")
+
 
     apply_button = tk.Button(frame_buttons, text="Apply", width=10, command=apply_settings)
     apply_button.grid(row=0, column=0, padx=5, pady=5)
@@ -415,6 +432,7 @@ if __name__ == '__main__':
     #Vban ON/OFF 
     frame_vban = tk.Frame(root, padx=10, pady=10)
     frame_vban.grid(row=2, column=0, sticky="w")
+    #frame_vban.configure(bg="#373861")
     On_off_button = tk.Button(frame_vban, text="VBAN OFF", bg="RED", command=toggle_button)
     On_off_button.grid(row=3, column=0, padx=2, pady=5, sticky="we")
 
@@ -445,7 +463,7 @@ if __name__ == '__main__':
 
 
 
-########################## Vban go on start##############################
+########################## Vban go on start ##############################
 
         if check_var.get() == 1 :
             Vban_on()

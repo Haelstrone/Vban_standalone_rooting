@@ -1,13 +1,9 @@
-Input Device: Pilote de capture audio principal
-Output Device: Microphone (Realtek(R) Audio)
-Stream 1 - Received IP: 192.168.0.1
-Stream 1 - Received Name: test
-Stream 2 - Received IP: 192.168.0.2
-Stream 2 - Received Name:  ouf
-Stream 1 - Send IP: 192.168.0.1
-Stream 1 - Send Name: sfsf
-Stream 2 - Send IP: 192.168.0.1
-Stream 2 - Send Name: fefa
+Input Device: Réseau de microphones (Realtek(
+Output Device: PLT2252 (HD Audio Driver for Display Audio)
+Stream 1 - Received IP: 192.168.0.10
+Stream 1 - Received Name: Test2
+Stream 1 - Send IP: 192.168.0.10
+Stream 1 - Send Name: Test
 VBAN - Toggle On Start: 0
-input index: 9
-output index: 1
+input index: 2
+output index: 15
