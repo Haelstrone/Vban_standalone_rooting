@@ -14,6 +14,7 @@ import os
 import time
 import sys
 import subprocess
+import winreg
 
 ################################################# VBAN FLOW ###############################################
 
@@ -26,7 +27,7 @@ stop_vban_event = mp.Event()
 
 
 def load_variables_dgtr():
-    filename = "save.txt"
+    filename = "Config.txt"
     variables = {}
     try:
         with open(filename, 'r') as file:
@@ -138,18 +139,20 @@ if __name__ == '__main__':
             send_process = None
         stop_vban_event.set()
 
+    
+
     def restart_application():
         Vban_off()
-        root.destroy()
-
         python = sys.executable
-        os.execl(sys.argv[0])
+        subprocess.Popen([python] + sys.argv)
+        sys.exit()
         
 
     def apply_settings():
         # Save the variables
-        filename = "save.txt"
-        os.remove(filename)
+        filename = "Config.txt"
+        if os.path.exists(filename):
+            os.remove(filename)
         with open(filename, 'w') as file:
             file.write(f"Input Device: {selected_input_device.get()}\n")
             file.write(f"Output Device: {selected_output_device.get()}\n")
@@ -164,8 +167,10 @@ if __name__ == '__main__':
             file.write(f"VBAN - Toggle On Start: {check_var.get()}\n")
             file.write(f"input index: {selected_input_index}\n")
             file.write(f"output index: {selected_output_index}\n")
+            file.write(f"lunch on window st-up: {autostart_var.get()}\n")
+            
         print("Variables saved to", filename )
-
+        toggle_autostart()
         messagebox.showinfo("VBAN I/O Setup", "Settings applied and saved!\n The Software will restart. ")
         restart_application()
 
@@ -178,7 +183,7 @@ if __name__ == '__main__':
 
 
     def load_variables():
-        filename = "save.txt"
+        filename = "Config.txt"
         variables = {}
         try:
             with open(filename, 'r') as file:
@@ -202,17 +207,18 @@ if __name__ == '__main__':
     
 
     def Quit_app(icon):
-        icon.stop()
-        Vban_off()
-        recv_process.join()
-        send_process.join()
-        root.destroy()
+        if messagebox.askyesno("VBAN I/O Setup", "Are you sure you want to close without saving?"):
+            icon.stop()
+            Vban_off()
+            root.destroy()
+
 
     def Quit_app_button():
-        Vban_off()
-        recv_process.join()
-        send_process.join()
-        root.destroy()
+        if messagebox.askyesno("VBAN I/O Setup", "Are you sure you want to close without saving?"):
+            Vban_off()
+            root.destroy()
+
+
 
     def show_window(icon):
             icon.stop()
@@ -264,12 +270,7 @@ if __name__ == '__main__':
     frame_received = tk.LabelFrame(root, text="Received", padx=10, pady=10)
     frame_received.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
     #frame_received.configure(bg="#373861")
-    #Label ip and Steam Name
-    label_Ip_received = tk.Label(frame_received, text="Ip Adress:")
-    label_Ip_received.grid(row=0, column=1, padx=5, pady=5, sticky="sw")
 
-    label_Name_received = tk.Label(frame_received, text="Stream Name:")
-    label_Name_received.grid(row=0, column=2, padx=5, pady=5, sticky="sw")
 
     # Stream 1 - Received
     # label_stream1_received = tk.Label(frame_received, text="Stream 1:")
@@ -298,28 +299,50 @@ if __name__ == '__main__':
 
 ############################################################# label and tooltip #####################################################
 
-    
-    # is working but there is issue with the position of the label 
-    
-    
-    def create_tooltip(widget, text):
-        tooltip = ttk.Label(root, text=text, background="white", padding=(5, 2))
-        tooltip.place_configure(x=0, y=0, relwidth=1, relheight=1)
-        tooltip.configure(relief="solid")
-        tooltip.place_forget()
-        widget.bind("<Enter>", lambda event: tooltip.place_configure(x=root.winfo_pointerx(), y=root.winfo_pointery()))
-        widget.bind("<Leave>", lambda event: tooltip.place_forget())
-       
+
+    class Tooltip:
+        def __init__(self, widget, text):
+            self.widget = widget
+            self.text = text
+            self.tooltip = None
+            self.widget.bind("<Enter>", self.show_tooltip)
+            self.widget.bind("<Leave>", self.hide_tooltip)
+
+        def show_tooltip(self, event=None):
+            if self.tooltip is not None:
+                return
+            x, y, _, _ = self.widget.bbox("insert")
+            x += self.widget.winfo_rootx() + 25
+            y += self.widget.winfo_rooty() + 20
+
+            self.tooltip = tk.Toplevel(self.widget)
+            self.tooltip.wm_overrideredirect(True)
+            self.tooltip.wm_geometry(f"+{x}+{y}")
+            label = tk.Label(self.tooltip, text=self.text, background="#ffffe0", relief="solid", borderwidth=1)
+            label.pack(ipadx=1)
+
+        def hide_tooltip(self, event=None):
+            if self.tooltip is not None:
+                self.tooltip.destroy()
+                self.tooltip = None
+
     #Label ip and Steam Name
     label_Ip_send = tk.Label(frame_send, text="Ip Adress:")
     label_Ip_send.grid(row=0, column=1, padx=5, pady=5, sticky="sw")
-    create_tooltip(label_Ip_send, "This is a tooltip2.")
+    tooltip = Tooltip(label_Ip_send, "Enter here the ip address of the workstation where you want to send the audio")
 
     label_Name_send = tk.Label(frame_send, text="Stream Name:")
     label_Name_send.grid(row=0, column=2, padx=5, pady=5, sticky="sw")
-    create_tooltip(label_Name_send, "This is a tooltip2.")
+    tooltip = Tooltip( label_Name_send, "I recommend that you enter the name of the workstation here,\n the same name should be entered in the reception area of the receiving workstation.")
 
+    #Label ip and Steam Name
+    label_Ip_received = tk.Label(frame_received, text="Ip Adress:")
+    label_Ip_received.grid(row=0, column=1, padx=5, pady=5, sticky="sw")
+    tooltip = Tooltip( label_Ip_received, "Enter the IP address of the workstation from which you are receiving the audio here")
 
+    label_Name_received = tk.Label(frame_received, text="Stream Name:")
+    label_Name_received.grid(row=0, column=2, padx=5, pady=5, sticky="sw")
+    tooltip = Tooltip( label_Name_received, "Enter here the name of the audio stream sent from the sender's workstation")
 
 
 ####################################################################################################################################################
@@ -377,15 +400,18 @@ if __name__ == '__main__':
     output_devices = [p.get_device_info_by_index(i)["name"] for i in range(p.get_device_count())]
     p.terminate()
 
-    # device output Space
+    # device output Space------------------------
     frame_output_device = tk.LabelFrame(frame_received, text="Output Device", padx=10, pady=10)
     frame_output_device.grid(row=3, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
     #frame_output_device.configure(bg="#373861")
-    # device input Space
+
+    # device input Space-----------------
     frame_input_device = tk.LabelFrame(frame_send, text="Input Device", padx=10, pady=10)
     frame_input_device.grid(row=3, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
     #frame_input_device.configure(bg="#373861")
-    # Input device dropdown menu
+
+
+    # Input device dropdown menu-------------------------------------
     # selected_input_device = tk.StringVar(root)
     # selected_input_device.set(input_devices[0])
     # selected_input_device.trace('w', on_input_device_selected)
@@ -401,7 +427,7 @@ if __name__ == '__main__':
     dropdown_input.grid(row=3, column=2, padx=0, pady=10, sticky="w")
 
 
-    # Output device dropdown menu
+    # Output device dropdown menu--------------------------------------
     selected_output_device = tk.StringVar(root)
     selected_output_device.set(output_devices[0])
     selected_output_device.trace('w', on_output_device_selected)
@@ -409,9 +435,9 @@ if __name__ == '__main__':
     dropdown_output = tk.OptionMenu(frame_received, selected_output_device, *output_devices)
     dropdown_output.grid(row=3, column=2, padx=0, pady=10, sticky="w")
 
-#############################################################################################################################################
 
-    # Apply Cancel and quit Buttons
+
+    # Apply Cancel and quit Buttons------------------------------------
     frame_buttons = tk.Frame(root, padx=10, pady=10)
     frame_buttons.grid(row=3, column=0, sticky="e")
     #frame_buttons.configure(bg="#373861")
@@ -420,16 +446,16 @@ if __name__ == '__main__':
     apply_button = tk.Button(frame_buttons, text="Apply", width=10, command=apply_settings)
     apply_button.grid(row=0, column=0, padx=5, pady=5)
 
-    cancel_button = tk.Button(frame_buttons, text="Cancel", width=10, command=cancel_settings)
-    cancel_button.grid(row=0, column=1, padx=5, pady=5)
+    # cancel_button = tk.Button(frame_buttons, text="Cancel", width=10, command=cancel_settings)
+    # cancel_button.grid(row=0, column=1, padx=5, pady=5)
 
     Quit_button = tk.Button(frame_buttons, text="Quit app", width=10, command=Quit_app_button)
     Quit_button.grid(row=0, column=2, padx=5, pady=5)
 
-    Debug_button = tk.Button(frame_buttons, text="Debug", width=10, command=print_debug)
-    Debug_button.grid(row=0, column=3, padx=5, pady=5)
+    # Debug_button = tk.Button(frame_buttons, text="Debug", width=10, command=print_debug)
+    # Debug_button.grid(row=0, column=3, padx=5, pady=5)
 
-    #Vban ON/OFF 
+    #Vban ON/OFF --------------
     frame_vban = tk.Frame(root, padx=10, pady=10)
     frame_vban.grid(row=2, column=0, sticky="w")
     #frame_vban.configure(bg="#373861")
@@ -437,15 +463,41 @@ if __name__ == '__main__':
     On_off_button.grid(row=3, column=0, padx=2, pady=5, sticky="we")
 
 
-    #vban ON on start
+    #vban ON on start------------------------------
 
     check_var = tk.IntVar()
     check_button = tk.Checkbutton(frame_vban, text="Toggle on Start", variable=check_var)
     check_button.grid(row= 3, column=1, padx=10, pady=10)
 
+    autostart_var = tk.IntVar()
+    autostart_checkbox = tk.Checkbutton(frame_buttons, text="lunch on Windows Start-Up", variable=autostart_var)
+    autostart_checkbox.grid(row= 1, column=0, columnspan=3, padx=10, pady=10)
+
+    def toggle_autostart():
+        if autostart_var.get() == 1:
+            
+            key = winreg.HKEY_CURRENT_USER
+            key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            app_name = "VBANIO"  
+            app_path = os.path.abspath(sys.argv[0]) 
+            try:
+                with winreg.OpenKey(key, key_path, 0, winreg.KEY_SET_VALUE) as reg_key:
+                    winreg.SetValueEx(reg_key, app_name, 0, winreg.REG_SZ, app_path)
+            except Exception as e:
+                print("error", e)
+        else:
+            
+            key = winreg.HKEY_CURRENT_USER
+            key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            app_name = "VBANIO"  
+            try:
+                with winreg.OpenKey(key, key_path, 0, winreg.KEY_SET_VALUE) as reg_key:
+                    winreg.DeleteValue(reg_key, app_name)
+            except Exception as e:
+                print("Erreur", e)
 
 
-    # Load saved variables
+    # Load saved variables--------------------------------------------------
     saved_variables = load_variables()
     if saved_variables:
         selected_input_device.set(saved_variables.get("Input Device", input_devices[0]))
@@ -459,30 +511,17 @@ if __name__ == '__main__':
         # entry_stream2_ip_send.insert(0, saved_variables.get("Stream 2 - Send IP", ""))
         # entry_stream2_name_send.insert(0, saved_variables.get("Stream 2 - Send Name", ""))
         state = check_var.set(saved_variables.get("VBAN - Toggle On Start", ""))
+        state2 = autostart_var.set(saved_variables.get("lunch on window st-up",""))
+    if check_var.get() == 1 :
+        Vban_on()
+        print("okayletsgoooo")
+
+
+    # Autostart
 
 
 
 
-########################## Vban go on start ##############################
-
-        if check_var.get() == 1 :
-            Vban_on()
-            print("okayletsgoooo")
-
-#########################################################################
-
-
-
-    # Shared_selected_input_index = Value('i', selected_input_index.get() )
-    # Shared_selected_output_index = Value('i', selected_output_index.get())
-    # Shared_entry_stream1_ip_received = Value('s', entry_stream1_ip_received.get())
-    # Shared_entry_stream1_name_received = Value('s', entry_stream1_name_received.get())
-    # Shared_entry_stream2_ip_received = Value('s', entry_stream2_ip_received.get() )
-    # Shared_entry_stream2_name_received= Value('s', entry_stream2_name_received.get())
-    # Shared_entry_stream1_ip_send = Value('s', entry_stream1_ip_send.get())
-    # Shared_entry_stream1_name_send = Value('s', entry_stream1_name_send.get())
-    # Shared_entry_stream2_ip_send = Value('s', entry_stream2_ip_send.get())
-    # Shared_entry_stream2_name_send = Value('s', entry_stream2_name_send.get())
 
 #
     root.mainloop()
