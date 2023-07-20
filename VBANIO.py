@@ -22,22 +22,23 @@ import winreg
 
 stop_vban_event = mp.Event()
 
-
+script_directory = os.path.dirname(os.path.abspath(__file__))
+config_file_path = os.path.join(script_directory, "config.txt")
 
 
 
 def load_variables_dgtr():
-    filename = "Config.txt"
+    #filename = "Config.txt"
     variables = {}
     try:
-        with open(filename, 'r') as file:
+        with open(config_file_path, 'r') as file:
             for line in file:
                 try:
                     key, value = line.strip().split(": ")
                     variables[key] = value
                 except ValueError:
                     print(f"Ligne mal formatée : {line}")
-        print("Variables chargées depuis", filename)
+        #print("Variables chargées depuis", filename)
         return variables                                                         # A L E D
     except FileNotFoundError:
         print("Fichier de sauvegarde non trouvé.")
@@ -116,6 +117,11 @@ if __name__ == '__main__':
     recv_process = None
     send_process = None
 
+
+    script_directory = os.path.dirname(os.path.abspath(__file__))
+    config_file_path = os.path.join(script_directory, "config.txt")
+
+
     def Vban_on():
         global recv_process, send_process
         if recv_process is None or not recv_process.is_alive():
@@ -150,10 +156,10 @@ if __name__ == '__main__':
 
     def apply_settings():
         # Save the variables
-        filename = "Config.txt"
-        if os.path.exists(filename):
-            os.remove(filename)
-        with open(filename, 'w') as file:
+        #filename = "Config.txt"
+        if os.path.exists(config_file_path):
+            os.remove(config_file_path)
+        with open(config_file_path, 'w') as file:
             file.write(f"Input Device: {selected_input_device.get()}\n")
             file.write(f"Output Device: {selected_output_device.get()}\n")
             file.write(f"Stream 1 - Received IP: {entry_stream1_ip_received.get()}\n")
@@ -169,7 +175,7 @@ if __name__ == '__main__':
             file.write(f"output index: {selected_output_index}\n")
             file.write(f"lunch on window st-up: {autostart_var.get()}\n")
             
-        print("Variables saved to", filename )
+        #print("Variables saved to", config_file_path )
         toggle_autostart()
         messagebox.showinfo("VBAN I/O Setup", "Settings applied and saved!\n The Software will restart. ")
         restart_application()
@@ -183,17 +189,17 @@ if __name__ == '__main__':
 
 
     def load_variables():
-        filename = "Config.txt"
+        #filename = "Config.txt"
         variables = {}
         try:
-            with open(filename, 'r') as file:
+            with open(config_file_path, 'r') as file:
                 for line in file:
                     try:
                         key, value = line.strip().split(": ")
                         variables[key] = value
                     except ValueError:
                         print(f"Ligne mal formatée : {line}")
-            print("Variables chargées depuis", filename)
+            #print("Variables chargées depuis", filename)
             return variables                                                         # A L E D
         except FileNotFoundError:
             print("Fichier de sauvegarde non trouvé.")
