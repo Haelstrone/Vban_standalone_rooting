@@ -1,9 +1,0 @@
-Input Device: Réseau de microphones (Realtek(
-Output Device: Casque (Realtek(R) Audio)
-Stream 1 - Received IP: 192.168.0.10
-Stream 1 - Received Name: Test2
-Stream 1 - Send IP: 192.168.0.10
-Stream 1 - Send Name: Test
-VBAN - Toggle On Start: 0
-input index: 2
-output index: 7
